@@ -254,6 +254,19 @@ def _settle_plan(stats: Dict[str, dict]) -> List[dict]:
 async def root():
     return {"app": "Split It", "status": "ok"}
 
+@api_router.get("/health")
+async def health():
+    """Real connectivity proof: actually pings MongoDB rather than assuming
+    the client object being non-null means the DB is reachable. Motor/Mongo
+    clients connect lazily, so `client = AsyncIOMotorClient(...)` succeeds
+    even with a wrong URL — nothing fails until the first real command."""
+    try:
+        await client.admin.command("ping")
+        db_status = "connected"
+    except Exception as e:
+        db_status = f"unreachable: {e}"
+    return {"app": "Split It", "api": "ok", "database": db_status}
+
 @api_router.get("/meta")
 async def meta():
     return {"categories": CATEGORIES, "currencies": CURRENCIES, "member_colors": MEMBER_COLORS}
